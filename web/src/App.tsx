@@ -12,6 +12,7 @@ import { FolderPicker } from './ui/FolderPicker';
 import { RoomSettings } from './ui/RoomSettings';
 import { TeamPanel } from './ui/TeamPanel';
 import { RoomRoster } from './ui/RoomRoster';
+import { Atlas } from './ui/Atlas';
 import { DecorPalette } from './ui/DecorPalette';
 import { autoDecor, PRESETS } from './render/decor';
 import { THEMES } from './render/draw';
@@ -182,6 +183,7 @@ export default function App() {
   /** The "which projects appear?" card: opened by hand from + project, or
    *  shown once on a fresh install. Skipping it settles the question too. */
   const [chooserOpen, setChooserOpen] = useState(false);
+  const [atlasOpen, setAtlasOpen] = useState(false);
   const [chooserSkipped, setChooserSkipped] = useState(false);
   // A newer build, or a line from us: the server asks airoom.dev, this shows it.
   const { release } = useRelease();
@@ -715,6 +717,9 @@ export default function App() {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5l2 3h2l2-3h5" /><path d="M4 12v6h16v-6" /><path d="M6 12 8 5h8l2 7" /></svg>
             {needsN > 0 && <span className="rail__badge">{needsN}</span>}
           </button>
+          <button className={`rail__i ${atlasOpen ? 'rail__i--on' : ''}`} title="Atlas — every session, active or not, by region or folder" aria-label="Atlas" onClick={() => setAtlasOpen(true)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
+          </button>
           <button className="rail__i" title="Which projects appear" aria-label="Projects" onClick={() => setChooserOpen(true)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
           </button>
@@ -1094,6 +1099,21 @@ export default function App() {
               />
             </>
           )}
+
+        {atlasOpen && (
+          <>
+          <div className="panel-backdrop" onClick={() => setAtlasOpen(false)} />
+          <Atlas
+            hasDesk={(id) => !!snapshot?.robots.some((r) => r.sessionId === id)}
+            onOpenDesk={(id) => {
+              setAtlasOpen(false);
+              setSelectedId(id);
+            }}
+            onNotice={raise}
+            onClose={() => setAtlasOpen(false)}
+          />
+          </>
+        )}
 
         {rosterRoom && (
           <>

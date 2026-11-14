@@ -258,8 +258,23 @@ export class LocalClaudeDataSource implements DataSource {
     return files;
   }
 
+  /** Parses in flight, by file. Snapshots overlap (every transcript write
+   *  triggers one) and Atlas scans everything too; on a cold cache each
+   *  overlapping scan used to read and parse the same multi-MB files at once,
+   *  which is enough to exhaust the heap on a large ~/.claude/projects. */
+  private parsing = new Map<string, Promise<Robot | null>>();
+
+  private robotFor(file: string): Promise<Robot | null> {
+    let p = this.parsing.get(file);
+    if (!p) {
+      p = this.parseFile(file).finally(() => this.parsing.delete(file));
+      this.parsing.set(file, p);
+    }
+    return p;
+  }
+
   /** Parse one session file, reusing the cached result if it hasn't changed. */
-  private async robotFor(file: string): Promise<Robot | null> {
+  private async parseFile(file: string): Promise<Robot | null> {
     let stat;
     try {
       stat = await fs.stat(file);
@@ -284,6 +299,17 @@ export class LocalClaudeDataSource implements DataSource {
     } catch {
       return null;
     }
+  }
+
+  /** Every session on disk — no seven-day window, let-go ones included. The
+   *  Atlas map is where inactive sessions stay findable. */
+  async allSessions(): Promise<Robot[]> {
+    const out: Robot[] = [];
+    for (const file of await this.listSessionFiles()) {
+      const robot = await this.robotFor(file);
+      if (robot) out.push(robot);
+    }
+    return out;
   }
 
   async getSnapshot(): Promise<FleetSnapshot> {

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { LocalClaudeDataSource } from './datasource/LocalClaudeDataSource';
+import { handleAtlas } from './atlas';
 import { MAX_STEPS } from './parse/sessionParser';
 import { PERMISSION_MODES } from '../../shared/types';
 import type { DataSource } from './datasource/DataSource';
@@ -463,6 +464,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (handleAtlas(req, res, source as LocalClaudeDataSource, corsHeaders(req), isLocalOrigin(req.headers.origin))) return;
   if (req.url === '/health') {
     // CORS: the dev UI on :5173 polls this too (server itself is loopback-only)
     res.writeHead(200, corsHeaders(req));
